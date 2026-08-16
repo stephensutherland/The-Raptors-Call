@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------
+   Leaflet dark-theme overrides. Leaflet's default chrome (zoom
+   buttons, attribution bar) is designed for light basemaps and
+   shows up as a stark white box on our dark UI otherwise.
+   --------------------------------------------------------------- */
+.leaflet-container {
+  background: #0a0e1c;
+  font-family: inherit;
+}
+.leaflet-control-attribution {
+  background: rgba(10, 14, 28, 0.75) !important;
+  color: #64748b !important;
+  backdrop-filter: blur(4px);
+}
+.leaflet-control-attribution a {
+  color: #22d3ee !important;
+}
+.leaflet-tile-pane {
+  filter: saturate(0.85) brightness(0.9);
+}
+
+/* Pulsing "you are here" beacon used on the live map marker. */
+.raptor-beacon-icon {
+  background: transparent !important;
+  border: none !important;
+}
+.raptor-beacon {
+  position: relative;
+  height: 48px;
+  width: 48px;
+}
+.raptor-beacon-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 16px;
+  width: 16px;
+  transform: translate(-50%, -50%) scale(0.6);
+  border-radius: 9999px;
+  background: var(--raptor-beacon-color, #22d3ee);
+  opacity: 0.55;
+  animation-name: raptor-beacon-ring;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+@keyframes raptor-beacon-ring {
+  0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0.55; }
+  100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
+}
+.raptor-beacon-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  height: 26px;
+  width: 26px;
+  transform: translate(-50%, -50%);
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  box-shadow: 0 0 12px 2px rgba(34, 211, 238, 0.55);
+}
