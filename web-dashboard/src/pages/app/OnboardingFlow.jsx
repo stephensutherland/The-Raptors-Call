@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -70,7 +70,7 @@ function HeadingMarker({ lat, lon, heading, pulseDuration, alert }) {
   return <Marker position={[lat, lon]} ref={markerRef} icon={icon()} interactive={false} keyboard={false} />;
 }
 
-function LiveMap({ lat, lon, heading, pulseDuration, onFail }) {
+function LiveMap({ lat, lon, heading, pulseDuration, onFail, children }) {
   return (
     <MapContainer
       center={[lat, lon]}
@@ -87,6 +87,9 @@ function LiveMap({ lat, lon, heading, pulseDuration, onFail }) {
       />
       <Recenter lat={lat} lon={lon} />
       <HeadingMarker lat={lat} lon={lon} heading={heading} pulseDuration={pulseDuration} alert={false} />
+      
+      {/* THIS LINE LETS NODES BE RENDERED INSIDE THE MAP CONTAINER */}
+      {children} 
     </MapContainer>
   );
 }
@@ -226,6 +229,39 @@ function HomeField({ location, onOpenSettings }) {
   const [mapFailed, setMapFailed] = useState(false);
   const lastMag = useRef(null);
 
+  // --- NEW STATES FROM MOMMA RAPTOR ---
+  const [alarmStatus, setAlarmStatus] = useState('CLEAR');
+  const [activeNodes, setActiveNodes] = useState([]);
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [initialAlarmLocation, setInitialAlarmLocation] = useState(null);
+  const [nodeThreatDescription, setNodeThreatDescription] = useState('');
+
+  // --- NEW FUNCTIONS FROM MOMMA RAPTOR (MOVED OUTSIDE THE useEffect SO BUTTONS CAN SEE THEM!) ---
+  const simulateIncomingFieldMeshNodes = (baseCoord) => {
+    const mockNodes = [
+      { id: 'RAPTOR_NODE_01', lat: baseCoord.lat + 0.003, lng: baseCoord.lon + 0.002, alias: 'North Ridge Relay', threat: 'CLEAR', unvouchedDots: 0 },
+      { id: 'RAPTOR_NODE_02', lat: baseCoord.lat - 0.002, lng: baseCoord.lon - 0.004, alias: 'South Exit Choke', threat: 'CLEAR', unvouchedDots: 0 },
+      { id: 'RAPTOR_NODE_03', lat: baseCoord.lat + 0.001, lng: baseCoord.lon - 0.002, alias: 'West Treeline Perimeter', threat: 'PENDING', unvouchedDots: 3 }
+    ];
+    setActiveNodes(mockNodes);
+  };
+
+  const engageEmergencyState = (type) => {
+    setAlarmStatus(type);
+    const logCoordinates = { lat: location.lat, lon: location.lon };
+    if (!initialAlarmLocation) setInitialAlarmLocation(logCoordinates);
+    simulateIncomingFieldMeshNodes(logCoordinates);
+  };
+
+  const cancelEmergencyState = () => {
+    setAlarmStatus('CLEAR');
+    setActiveNodes([]);
+    setSelectedNode(null);
+    setInitialAlarmLocation(null);
+  };
+  // --- END MOVED FUNCTIONS ---
+
+  // Keep your original useEffect just for the sensors
   useEffect(() => {
     if (!sensorsEnabled) return;
     function handleOrientation(e) {
@@ -258,7 +294,31 @@ function HomeField({ location, onOpenSettings }) {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-raptor-void">
-      <LiveMap lat={location.lat} lon={location.lon} heading={heading} pulseDuration={pulseDuration} onFail={() => setMapFailed(true)} />
+      {/* 1. The Map */}
+            <LiveMap 
+        lat={location.lat} 
+        lon={location.lon} 
+        heading={heading} 
+        pulseDuration={pulseDuration} 
+        onFail={() => setMapFailed(true)}
+      >
+        {/* Now the markers are children of the MapContainer! */}
+        {activeNodes.map((node) => (
+          <Marker
+            key={node.id}
+            position={[node.lat, node.lng]}
+            icon={L.divIcon({
+              className: 'mesh-node-marker',
+              html: `<div style="background-color: ${node.unvouchedDots > 0 ? '#ef4444' : '#10b981'}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.5);"></div>`,
+              iconSize: [14, 14],
+              iconAnchor: [7, 7]
+            })}
+            eventHandlers={{
+              click: () => setSelectedNode(node)
+            }}
+          />
+        ))}
+      </LiveMap>
 
       <div className="pointer-events-none absolute inset-0 z-[400] bg-gradient-to-b from-raptor-void/70 via-transparent to-raptor-void/80" />
 
@@ -279,25 +339,48 @@ function HomeField({ location, onOpenSettings }) {
       )}
 
       <div className="absolute bottom-0 left-0 right-0 z-[500] rounded-t-2xl border-t border-raptor-line bg-raptor-bg/95 px-4 pb-6 pt-4 backdrop-blur">
-        {!sensorsEnabled && (
-          <button onClick={enableSensors} className="mb-3 flex w-full items-center justify-center gap-2 rounded-lg border border-raptor-cyan/40 bg-raptor-cyan/10 px-3 py-2 text-sm font-medium text-raptor-cyan hover:bg-raptor-cyan/20">
-            <Compass className="h-4 w-4" /> Enable compass & motion
-          </button>
-        )}
-
-        <div className="mb-3 flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2 text-slate-300">
-            <Compass className="h-4 w-4 text-slate-500" />
-            <span className="font-mono">{cardinal(heading)} · {Math.round(((heading % 360) + 360) % 360)}°</span>
+        {alarmStatus === 'CLEAR' ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-3">
+              <button onClick={() => engageEmergencyState('SCREAMING')} className="flex-1 rounded-lg bg-rose-600 py-3 text-sm font-bold text-white shadow-lg hover:bg-rose-500">
+                🔊 SOUND SCREAMER
+              </button>
+              <button onClick={() => engageEmergencyState('SILENT')} className="flex-1 rounded-lg bg-amber-500 py-3 text-sm font-bold text-white shadow-lg hover:bg-amber-400">
+                🤫 SILENT BEACON
+              </button>
+            </div>
+            <button onClick={() => setMeshConnected((v) => !v)} className={`w-full rounded-lg border px-3 py-2 text-sm ${meshConnected ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-raptor-line text-slate-400 hover:border-slate-600'}`}>
+              <span className="flex items-center justify-center gap-2"><Radio className="h-4 w-4" /> {meshConnected ? 'Meshtastic connected' : 'Connect Meshtastic'}</span>
+            </button>
           </div>
-          <span className="font-mono text-xs text-slate-500">{location.lat.toFixed(4)}, {location.lon.toFixed(4)}</span>
-        </div>
-
-        <button onClick={() => setMeshConnected((v) => !v)}
-          className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-sm ${meshConnected ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-raptor-line text-slate-400 hover:border-slate-600'}`}>
-          <span className="flex items-center gap-2"><Radio className="h-4 w-4" /> {meshConnected ? 'Meshtastic device connected' : 'No Meshtastic device connected — phone location only'}</span>
-          <span className="text-xs">{meshConnected ? 'Disconnect' : 'Connect'}</span>
-        </button>
+        ) : (
+          // ALARM ACTIVE STATE
+          <div className="flex flex-col gap-3">
+            <button onClick={cancelEmergencyState} className="w-full rounded-lg bg-emerald-500 py-4 text-sm font-bold text-white shadow-lg hover:bg-emerald-400">
+              ✅ CANCEL ALERT (PIN)
+            </button>
+            {/* Selected Node Overlay */}
+            {selectedNode && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                <p className="text-xs text-amber-300">Node {selectedNode.id} selected.</p>
+                <input 
+                  placeholder="Enter threat notes..." 
+                  value={nodeThreatDescription} 
+                  onChange={(e) => setNodeThreatDescription(e.target.value)}
+                  className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-white outline-none" 
+                />
+                <button onClick={() => {
+                    setActiveNodes(prev => prev.map(n => n.id === selectedNode.id ? { ...n, threat: 'CONFIRMED_OPPOSITION' } : n));
+                    setSelectedNode(null);
+                    setNodeThreatDescription('');
+                  }} 
+                  className="mt-2 w-full rounded bg-rose-600 py-1 text-xs font-bold text-white">
+                  CONFIRM OPPOSITION
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -3,10 +3,11 @@ import { useState, useEffect } from 'react';
 import {
   UserPlus, Users, LayoutDashboard, CheckCircle2,
   XCircle, ChevronRight, Search, AlertTriangle, ArrowLeft,
-  Save, MapPin, Phone, Compass, Loader2, Plus, Home
+  Save, MapPin, Phone, Compass, Loader2, Plus, Home, Radio
 } from 'lucide-react';
 import { storage } from '../../lib/storage.js';
 import RaptorMark from '../../components/RaptorMark.jsx';
+import EmergencyDashboard from '../../components/EmergencyDashboard.jsx';
 
 const STORAGE_KEY = 'vetting-candidates';
 
@@ -112,6 +113,7 @@ function NavBar({ view, setView }) {
   const items = [
     { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { key: 'intake', label: 'New intake', icon: UserPlus },
+    { key: 'emergency', label: 'Emergency', icon: Radio },
   ];
   return (
     <div className="mb-6 flex items-center justify-between border-b border-slate-800 pb-4">
@@ -213,7 +215,7 @@ export default function App() {
   }, {});
 
   return (
-    <div className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100 sm:px-8">
+    <div className="min-h-screen bg-raptor-void px-4 py-6 text-slate-100 sm:px-8">
       <div className="mx-auto max-w-3xl">
         <NavBar view={view === 'review' || view === 'detail' ? '' : view} setView={(v) => { setView(v); setSelectedId(null); }} />
 
@@ -378,6 +380,8 @@ export default function App() {
         {!loading && view === 'detail' && selected && (
           <DetailPanel candidate={selected} onBack={() => { setView('dashboard'); setSelectedId(null); }} onPromote={() => { updateCandidate(selected.id, { status: 'tier2' }); showToast('Promoted to Tier 2.'); }} onAddIncident={(note) => addIncident(selected.id, note)} />
         )}
+
+        {!loading && view === 'emergency' && <EmergencyDashboard />}
       </div>
     </div>
   );
