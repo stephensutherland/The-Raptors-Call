@@ -236,6 +236,12 @@ function HomeField({ location, onOpenSettings }) {
   const [initialAlarmLocation, setInitialAlarmLocation] = useState(null);
   const [nodeThreatDescription, setNodeThreatDescription] = useState('');
 
+    // --- OVERLAY STATES ---
+  const [showMeshOverlay, setShowMeshOverlay] = useState(false);
+  const [showRadarOverlay, setShowRadarOverlay] = useState(false);
+  const [showChatOverlay, setShowChatOverlay] = useState(false);
+
+
   // --- NEW FUNCTIONS FROM MOMMA RAPTOR (MOVED OUTSIDE THE useEffect SO BUTTONS CAN SEE THEM!) ---
   const simulateIncomingFieldMeshNodes = (baseCoord) => {
     const mockNodes = [
@@ -337,6 +343,21 @@ function HomeField({ location, onOpenSettings }) {
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Map tiles unavailable — showing approximate position only.
         </div>
       )}
+
+
+      {/* --- NEW OVERLAY TOOLBAR --- */}
+      <div className="absolute bottom-24 left-1/2 z-[500] flex -translate-x-1/2 gap-2 rounded-full bg-raptor-bg/90 p-1.5 backdrop-blur border border-raptor-line">
+        <button onClick={() => setShowMeshOverlay(!showMeshOverlay)} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${showMeshOverlay ? 'bg-raptor-cyan/20 text-raptor-cyan' : 'text-slate-400 hover:text-slate-200'}`}>
+          Meshtastic
+        </button>
+        <button onClick={() => setShowRadarOverlay(!showRadarOverlay)} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${showRadarOverlay ? 'bg-raptor-cyan/20 text-raptor-cyan' : 'text-slate-400 hover:text-slate-200'}`}>
+          Radar
+        </button>
+        <button onClick={() => setShowChatOverlay(!showChatOverlay)} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${showChatOverlay ? 'bg-raptor-cyan/20 text-raptor-cyan' : 'text-slate-400 hover:text-slate-200'}`}>
+          Chat
+        </button>
+      </div>
+ 
 
       <div className="absolute bottom-0 left-0 right-0 z-[500] rounded-t-2xl border-t border-raptor-line bg-raptor-bg/95 px-4 pb-6 pt-4 backdrop-blur">
         {alarmStatus === 'CLEAR' ? (
